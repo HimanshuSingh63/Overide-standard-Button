@@ -1,0 +1,55 @@
+({
+    onInit : function (component, event, helper) {
+        //helper.checkCurrentUserType(component, event, helper);
+    },
+
+    handleNewClick : function (component, event, helper) {
+
+        $A.createComponent(
+            "lightning:flow",
+            {
+                "aura:id": "flowData",
+                "label": "Press Me",
+                "onstatuschange": component.getReference("c.handleFlowStatusChange")
+            },
+            function(newFlow, status, errorMessage){
+                //Add the new button to the body array
+                if (status === "SUCCESS") {
+                    var body = component.get("v.body");
+                    body.push(newFlow);
+                    component.set("v.body", body);
+                    component.set("v.showFlow", true);
+                    const flow = component.find("flowData");
+                    flow.startFlow("ECMS_New_Enrollment_Screen_Flow");
+                }
+                else if (status === "INCOMPLETE") {
+                    console.log("No response from server or client is offline.")
+                    // Show offline error
+                }
+                else if (status === "ERROR") {
+                    console.log("Error: " + errorMessage);
+                    // Show error message
+                }
+            }
+        );
+    },
+
+    handleCloseModal : function (component, event, helper) {
+        component.find("flowData").destroy();
+        component.set("v.showFlow", false);
+    },
+
+    handleFlowStatusChange : function (component, event, helper) {
+        if(event.getParam("status") === "FINISHED") {
+            /*
+            var urlEvent = $A.get("e.force:navigateToSObject");
+            urlEvent.setParams({
+               "recordId": component.get("v.recordId"),
+               "isredirect": "true"
+            });
+            urlEvent.fire();
+            */
+            component.set("v.showFlow", false);
+        }
+    }
+})
