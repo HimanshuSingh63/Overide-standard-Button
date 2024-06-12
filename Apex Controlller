@@ -1,0 +1,41 @@
+public with sharing class ECMS_EnrollmentOverrideController {
+     private static final String                            CLASS_NAME        = 'ECMS_EnrollmentOverrideController';
+    private static ECMS_ExceptionLogUtility.ECMS_Error     ecmsError         = null;
+
+    @AuraEnabled
+    public static Boolean isCurrentUserExternalUser() {
+        try {
+            User user = [
+                SELECT  Id, ContactId, UserType
+                FROM    User
+                WHERE   Id = :UserInfo.getUserId()
+                WITH SECURITY_ENFORCED
+            ];
+            return ('Guest'.equalsIgnoreCase(user.UserType)) || (user.ContactId != NULL);
+        } catch (Exception e) {
+            handleException(e, 'isCurrentUserExternalUser');
+            return false;
+        }
+    }
+
+    // Handle errors. 
+    private static void handleException(Exception error, String methodName) {
+        System.debug(LoggingLevel.ERROR, error.getMessage() + '; ' + error.getStackTraceString());
+        logError(error, null, methodName);
+    }
+
+    private static void logError(Exception error, String eventId, String methodName) {
+         ecmsError = new ECMS_ExceptionLogUtility.ECMS_Error ();
+
+            //  fields set in alphabetical order
+            ecmsError.className         = CLASS_NAME;
+            ecmsError.exceptionDateTime = DateTime.now ();
+            ecmsError.message           = error.getMessage ();
+            ecmsError.type              = error.getTypeName ();
+            ecmsError.eventId           = eventId;
+            ecmsError.methodName        = methodName;
+            ecmsError.stackTrace        = error.getStackTraceString ();
+
+            ECMS_ExceptionLogUtility.publishEvent (ecmsError);
+    }
+}
