@@ -1,0 +1,66 @@
+({
+    checkCurrentUserType : function (component, event, helper) {
+        console.log('checkCurrentUserType');
+        var action = component.get("c.isCurrentUserExternalUser");
+        action.setCallback(this, function(response) {
+            var state = response.getState();
+            if (state === "SUCCESS") {
+                var currentUserIsExternalUser = response.getReturnValue();
+                if (currentUserIsExternalUser) {
+                    const flow = component.find("flowData");
+                    var inputVariables = [
+                        {
+                            name : "enrollmentId",
+                            type : "String",
+                            value: component.get("v.recordId")
+                        }
+                    ];
+                    flow.startFlow("ECMS_New_Enrollment_Screen_Flow");
+                } else {
+                    helper.newRecordWithoutOverride(component);
+                }
+            }
+            else if (state === "INCOMPLETE") {
+
+            }
+            else if (state === "ERROR") {
+                var errors = response.getError();
+                if (errors) {
+                    if (errors[0] && errors[0].message) {
+                        console.log("Error message: " +
+                                 errors[0].message);
+                    }
+                } else {
+                    console.log("Unknown error");
+                }
+            }
+        });
+        $A.enqueueAction(action);
+    },
+
+    newRecordWithoutOverride : function (component, event, helper) {
+        var navService = component.find("navService");
+        var pageRef = {
+            type: "standard__objectPage",
+            attributes: {
+                objectApiName: "ECMS_Enrollment__c",
+                actionName: "new"
+            },
+            state: {
+                "nooverride":"1"
+            }
+        };
+        // pageRef.state.defaultFieldValues = component.find("pageRefUtils").encodeDefaultFieldValues(defaultFieldValues);
+        component.set("v.pageReference", pageRef);
+        var defaultUrl = "#";
+
+        navService.generateUrl(pageRef)
+        .then($A.getCallback(function(url) {
+            component.set("v.url", url ? url : defaultUrl);
+            var pageRef = component.get("v.pageReference");
+            navService.navigate(pageRef);
+        }), $A.getCallback(function(error) {
+            component.set("v.url", defaultUrl);
+        }));
+    }
+})
